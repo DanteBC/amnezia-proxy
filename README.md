@@ -44,6 +44,8 @@ The file is mounted at `/gluetun/amneziawg/awg0.conf`, which is the custom Amnez
 
 The Compose entrypoint reads the AmneziaWG keys, address, endpoint, and obfuscation parameters directly from `config/amnezia.conf` and exports them only to Gluetun at startup. The endpoint hostname is resolved to an IPv4 address automatically because Gluetun requires an explicit endpoint IP.
 
+GSO is disabled for the AmneziaWG interface to avoid oversized UDP batches (`sendmmsg: message too long`) on hosts whose path MTU differs from the Docker network MTU. The interface MTU is read from the Amnezia configuration.
+
 `FIREWALL_OUTBOUND_SUBNETS` is optional and should only contain trusted local networks that must remain reachable outside the VPN. Keep it empty unless required. It is separate from `PROXY_WHITELIST`: the former changes VPN firewall routing, while the latter limits proxy destinations.
 
 ## Monitoring
