@@ -5,7 +5,7 @@ Docker Compose stack with an AmneziaWG tunnel, authenticated HTTP CONNECT and SO
 ## Quick start
 
 1. Put the client configuration exported by Amnezia in `config/amnezia.conf`.
-2. Copy `.env.example` to `.env` and change `PROXY_PASSWORD`.
+2. Copy `.env.example` to `.env` and change `PROXY_PASSWORD`. AmneziaWG values are read automatically from `config/amnezia.conf`.
 3. Start the stack:
 
 ```sh
@@ -42,13 +42,13 @@ docker compose up -d --build --force-recreate acl-proxy
 
 The file is mounted at `/gluetun/amneziawg/awg0.conf`, which is the custom AmneziaWG configuration location supported by Gluetun. It must be an AmneziaWG INI configuration, including `[Interface]` and `[Peer]`; do not commit it because it contains private keys.
 
-`config/amnezia.conf` may contain an endpoint hostname only if the Gluetun version in use supports it. For maximum compatibility, use the endpoint IP address from the Amnezia export.
+The Compose entrypoint reads the AmneziaWG keys, address, endpoint, and obfuscation parameters directly from `config/amnezia.conf` and exports them only to Gluetun at startup. The endpoint hostname is resolved to an IPv4 address automatically because Gluetun requires an explicit endpoint IP.
 
 `FIREWALL_OUTBOUND_SUBNETS` is optional and should only contain trusted local networks that must remain reachable outside the VPN. Keep it empty unless required. It is separate from `PROXY_WHITELIST`: the former changes VPN firewall routing, while the latter limits proxy destinations.
 
 ## Monitoring
 
-Prometheus scrapes Gluetun at `proxy:8000/metrics`. Tunnel and proxy container health are also visible in `docker compose ps` and `docker compose logs -f proxy`.
+Prometheus scrapes Gluetun at `proxy:9090/metrics`. Tunnel and proxy container health are also visible in `docker compose ps` and `docker compose logs -f proxy`.
 
 The Gluetun control server is intentionally not published on the host. If an external monitor must query it, publish `8000:8000` only on a trusted interface and set `CONTROL_SERVER_AUTH_DEFAULT_ROLE` to a basic-auth JSON role, for example:
 

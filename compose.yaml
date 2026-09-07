@@ -1,6 +1,6 @@
 services:
   proxy:
-    image: qmcgaw/gluetun:v3.41.3
+    image: qmcgaw/gluetun@sha256:89e3cbe22e0d6f09a18d3e86269392fd9f7f08e8991040741e577f8f127cdfe4
     container_name: amnezia-proxy
     restart: unless-stopped
     cap_add:
@@ -12,9 +12,13 @@ services:
       - "${SOCKS_PROXY_PORT:-1080}:1080/tcp"
     volumes:
       - ./config/amnezia.conf:/gluetun/amneziawg/awg0.conf:ro
+      - ./vpn/entrypoint.sh:/gluetun/amneziawg-entrypoint.sh:ro
+    entrypoint: ["/bin/sh", "/gluetun/amneziawg-entrypoint.sh"]
     environment:
       - VPN_SERVICE_PROVIDER=custom
       - VPN_TYPE=amneziawg
+      - METRICS_TYPE=prometheus
+      - METRICS_PROMETHEUS_LISTENING_ADDRESS=:9090
       - TZ=${TZ:-UTC}
       - HTTP_CONTROL_SERVER_ADDRESS=:8000
       - HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE=${CONTROL_SERVER_AUTH_DEFAULT_ROLE:-{"auth":"none"}}
@@ -23,8 +27,9 @@ services:
       - HEALTH_VPN_DURATION_ADDITION=${HEALTH_VPN_DURATION_ADDITION:-5s}
     expose:
       - "8000"
+      - "9090"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8000/v1/vpn/status"]
+      test: ["CMD", "wget", "--quiet", "-O", "/dev/null", "http://127.0.0.1:8000/v1/vpn/status"]
       interval: 30s
       timeout: 5s
       retries: 5

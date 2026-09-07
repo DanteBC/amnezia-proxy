@@ -7,7 +7,6 @@ password=${PROXY_PASSWORD:?PROXY_PASSWORD is required}
 whitelist=${PROXY_WHITELIST:-}
 
 {
-  printf 'nserver 127.0.0.11\n'
   printf 'nscache 65536\n'
   printf 'log\n'
   printf 'auth strong\n'
