@@ -1,0 +1,52 @@
+# Amnezia VPN HTTP + SOCKS5 proxy
+
+Docker Compose stack with an AmneziaWG tunnel, authenticated HTTP CONNECT and SOCKS5 proxies, and Prometheus monitoring.
+
+## Quick start
+
+1. Put the client configuration exported by Amnezia in `config/amnezia.conf`.
+2. Copy `.env.example` to `.env` and change `PROXY_PASSWORD`.
+3. Start the stack:
+
+```sh
+docker compose up -d
+```
+
+The first start can take up to the configured `HEALTH_VPN_DURATION_INITIAL` while the tunnel is established.
+
+## Endpoints
+
+- HTTP/HTTPS proxy: `http://HOST:${HTTP_PROXY_PORT:-3128}`
+- SOCKS5 proxy: `socks5://HOST:${SOCKS_PROXY_PORT:-1080}`
+- Prometheus UI: `http://HOST:${PROMETHEUS_PORT:-9090}`
+
+The same username and password from `.env` are required for both proxy protocols. HTTPS proxying is provided through HTTP CONNECT.
+
+## Configuration notes
+
+The file is mounted at `/gluetun/amneziawg/awg0.conf`, which is the custom AmneziaWG configuration location supported by Gluetun. It must be an AmneziaWG INI configuration, including `[Interface]` and `[Peer]`; do not commit it because it contains private keys.
+
+`config/amnezia.conf` may contain an endpoint hostname only if the Gluetun version in use supports it. For maximum compatibility, use the endpoint IP address from the Amnezia export.
+
+`FIREWALL_OUTBOUND_SUBNETS` is optional and should only contain trusted local networks that must remain reachable outside the VPN. Keep it empty unless required.
+
+## Monitoring
+
+Prometheus scrapes Gluetun at `proxy:8000/metrics`. Tunnel and proxy container health are also visible in `docker compose ps` and `docker compose logs -f proxy`.
+
+The Gluetun control server is intentionally not published on the host. If an external monitor must query it, publish `8000:8000` only on a trusted interface and set `CONTROL_SERVER_AUTH_DEFAULT_ROLE` to a basic-auth JSON role, for example:
+
+```dotenv
+CONTROL_SERVER_AUTH_DEFAULT_ROLE={"auth":"basic","username":"monitor","password":"change-this-too"}
+```
+
+Do not expose the control server directly to the Internet.
+
+## Useful commands
+
+```sh
+docker compose config
+docker compose ps
+docker compose logs -f proxy
+docker compose down
+```
