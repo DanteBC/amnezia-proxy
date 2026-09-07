@@ -3,6 +3,11 @@ services:
     image: qmcgaw/gluetun@sha256:89e3cbe22e0d6f09a18d3e86269392fd9f7f08e8991040741e577f8f127cdfe4
     container_name: amnezia-proxy
     restart: unless-stopped
+    init: true
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
     cap_add:
       - NET_ADMIN
     devices:
