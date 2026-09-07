@@ -22,13 +22,29 @@ The first start can take up to the configured `HEALTH_VPN_DURATION_INITIAL` whil
 
 The same username and password from `.env` are required for both proxy protocols. HTTPS proxying is provided through HTTP CONNECT.
 
+## Destination whitelist
+
+Set `PROXY_WHITELIST` in `.env` as a comma-separated list of destination IPs, CIDRs, or hostname patterns:
+
+```dotenv
+PROXY_WHITELIST=example.com,.example.org,203.0.113.10,198.51.100.0/24
+```
+
+The list is enforced by 3proxy before a connection is opened and applies to both HTTP CONNECT and SOCKS5. An empty value denies all destinations. For domains, include the bare domain and a dot-prefixed pattern when both the apex and subdomains are needed, for example `example.com,.example.com`.
+
+After changing the list, recreate the ACL container:
+
+```sh
+docker compose up -d --build --force-recreate acl-proxy
+```
+
 ## Configuration notes
 
 The file is mounted at `/gluetun/amneziawg/awg0.conf`, which is the custom AmneziaWG configuration location supported by Gluetun. It must be an AmneziaWG INI configuration, including `[Interface]` and `[Peer]`; do not commit it because it contains private keys.
 
 `config/amnezia.conf` may contain an endpoint hostname only if the Gluetun version in use supports it. For maximum compatibility, use the endpoint IP address from the Amnezia export.
 
-`FIREWALL_OUTBOUND_SUBNETS` is optional and should only contain trusted local networks that must remain reachable outside the VPN. Keep it empty unless required.
+`FIREWALL_OUTBOUND_SUBNETS` is optional and should only contain trusted local networks that must remain reachable outside the VPN. Keep it empty unless required. It is separate from `PROXY_WHITELIST`: the former changes VPN firewall routing, while the latter limits proxy destinations.
 
 ## Monitoring
 
