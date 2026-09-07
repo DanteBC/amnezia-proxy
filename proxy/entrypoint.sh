@@ -7,6 +7,8 @@ password=${PROXY_PASSWORD:?PROXY_PASSWORD is required}
 whitelist=${PROXY_WHITELIST:-}
 
 print_rules() {
+  set -f
+
   if [ "$whitelist" = '*' ]; then
     printf 'allow %s * * *\n' "$username"
     return

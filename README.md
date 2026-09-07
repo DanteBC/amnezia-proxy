@@ -27,10 +27,10 @@ The same username and password from `.env` are required for both proxy protocols
 Set `PROXY_WHITELIST` in `.env` as a comma-separated list of destination IPs, CIDRs, or hostname patterns:
 
 ```dotenv
-PROXY_WHITELIST=example.com,.example.org,203.0.113.10,198.51.100.0/24
+PROXY_WHITELIST=api.ipify.org,z.ai,*.z.ai,cursor.com,*.cursor.com,*.cursor.sh,*.cursor-cdn.com,*.cursorapi.com,*.cursorvm.com,*.*.cursorvm.com
 ```
 
-The list is enforced by 3proxy before a connection is opened and applies to both HTTP CONNECT and SOCKS5. An empty value denies all destinations. For domains, include the bare domain and a dot-prefixed pattern when both the apex and subdomains are needed, for example `example.com,.example.com`.
+The list is enforced by 3proxy before a connection is opened and applies to both HTTP CONNECT and SOCKS5. An empty value denies all destinations. For domains, include the bare domain and an explicit `*.` pattern when both the apex and subdomains are needed, for example `example.com,*.example.com`.
 
 After changing the list, recreate the ACL container:
 
