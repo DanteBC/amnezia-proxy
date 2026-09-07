@@ -15,6 +15,7 @@ services:
     ports:
       - "${HTTP_PROXY_PORT:-3128}:8888/tcp"
       - "${SOCKS_PROXY_PORT:-1080}:1080/tcp"
+      - "${PROMETHEUS_METRICS_PORT:-9091}:9090/tcp"
     volumes:
       - ./config/amnezia.conf:/gluetun/amneziawg/awg0.conf:ro
       - ./vpn/entrypoint.sh:/gluetun/amneziawg-entrypoint.sh:ro
@@ -33,7 +34,6 @@ services:
       - HEALTH_VPN_DURATION_ADDITION=${HEALTH_VPN_DURATION_ADDITION:-5s}
     expose:
       - "8000"
-      - "9090"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "-O", "/dev/null", "http://127.0.0.1:8000/v1/vpn/status"]
       interval: 30s

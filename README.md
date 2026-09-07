@@ -19,6 +19,7 @@ The first start can take up to the configured `HEALTH_VPN_DURATION_INITIAL` whil
 - HTTP/HTTPS proxy: `http://HOST:${HTTP_PROXY_PORT:-3128}`
 - SOCKS5 proxy: `socks5://HOST:${SOCKS_PROXY_PORT:-1080}`
 - Prometheus UI: `http://HOST:${PROMETHEUS_PORT:-9090}`
+- Gluetun metrics: `http://HOST:${PROMETHEUS_METRICS_PORT:-9091}/metrics`
 
 The same username and password from `.env` are required for both proxy protocols. HTTPS proxying is provided through HTTP CONNECT.
 
