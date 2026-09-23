@@ -32,13 +32,13 @@ print_rules() {
 
   print_rules
   printf 'deny * * * *\n'
-  printf 'proxy -p8888\n'
+  printf 'proxy -4 -p8888\n'
 
   printf 'flush\n'
   printf 'auth strong\n'
   print_rules
   printf 'deny * * * *\n'
-  printf 'socks -p1080\n'
+  printf 'socks -4 -p1080\n'
 } > "$config"
 
 exec /bin/3proxy "$config"
