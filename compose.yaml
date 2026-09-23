@@ -17,7 +17,7 @@ services:
       - "${HTTP_PROXY_PORT:-3128}:8888/tcp"
       - "${SOCKS_PROXY_PORT:-1080}:1080/tcp"
     volumes:
-      - ./config/amnezia3.conf:/etc/amnezia/awg0.conf:ro
+      - ${AWG_CONFIG}:/etc/amnezia/awg0.conf:ro
     entrypoint: ["/usr/local/bin/amneziawg-entrypoint.sh"]
     environment:
       - TZ=${TZ:-UTC}
