@@ -1,3 +1,4 @@
 config/amnezia.conf
 .env
 prometheus-data/
+config/amnezia3.conf
