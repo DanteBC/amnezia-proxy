@@ -1,6 +1,7 @@
 services:
   proxy:
-    image: qmcgaw/gluetun@sha256:89e3cbe22e0d6f09a18d3e86269392fd9f7f08e8991040741e577f8f127cdfe4
+    build:
+      context: ./vpn
     container_name: amnezia-proxy
     restart: unless-stopped
     init: true
@@ -15,27 +16,14 @@ services:
     ports:
       - "${HTTP_PROXY_PORT:-3128}:8888/tcp"
       - "${SOCKS_PROXY_PORT:-1080}:1080/tcp"
-      - "${PROMETHEUS_METRICS_PORT:-9091}:9090/tcp"
     volumes:
-      - ./config/amnezia.conf:/gluetun/amneziawg/awg0.conf:ro
-      - ./vpn/entrypoint.sh:/gluetun/amneziawg-entrypoint.sh:ro
-    entrypoint: ["/bin/sh", "/gluetun/amneziawg-entrypoint.sh"]
+      - ./config/amnezia3.conf:/etc/amnezia/awg0.conf:ro
+    entrypoint: ["/usr/local/bin/amneziawg-entrypoint.sh"]
     environment:
-      - VPN_SERVICE_PROVIDER=custom
-      - VPN_TYPE=amneziawg
-      - WIREGUARD_GSO=off
-      - METRICS_TYPE=prometheus
-      - METRICS_PROMETHEUS_LISTENING_ADDRESS=:9090
       - TZ=${TZ:-UTC}
-      - HTTP_CONTROL_SERVER_ADDRESS=:8000
-      - HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE=${CONTROL_SERVER_AUTH_DEFAULT_ROLE:-{"auth":"none"}}
-      - FIREWALL_OUTBOUND_SUBNETS=${FIREWALL_OUTBOUND_SUBNETS:-}
-      - HEALTH_VPN_DURATION_INITIAL=${HEALTH_VPN_DURATION_INITIAL:-120s}
-      - HEALTH_VPN_DURATION_ADDITION=${HEALTH_VPN_DURATION_ADDITION:-5s}
-    expose:
-      - "8000"
+      - AMNEZIAWG_CONFIG=/etc/amnezia/awg0.conf
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "-O", "/dev/null", "http://127.0.0.1:8000/v1/vpn/status"]
+      test: ["CMD-SHELL", "ip link show awg0 >/dev/null && ip route get 1.1.1.1 >/dev/null"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -55,21 +43,3 @@ services:
       - PROXY_PASSWORD=${PROXY_PASSWORD:?Set PROXY_PASSWORD in .env}
       - PROXY_WHITELIST=${PROXY_WHITELIST:-}
 
-  prometheus:
-    image: prom/prometheus:v3.5.0
-    container_name: amnezia-prometheus
-    restart: unless-stopped
-    depends_on:
-      - proxy
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090/tcp"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --web.enable-lifecycle
-
-volumes:
-  prometheus-data:
