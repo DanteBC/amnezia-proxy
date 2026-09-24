@@ -1,53 +1,65 @@
-# AmneziaWG 3.1 HTTP + SOCKS5 proxy
+# AmneziaWG 3.1 HTTP + SOCKS5 прокси
 
-Docker Compose stack with an AmneziaWG 3.1 userspace tunnel and authenticated HTTP CONNECT and SOCKS5 proxies.
+Docker Compose стек с пользователем туннелем AmneziaWG 3.1 и аутентифицированными прокси HTTP CONNECT и SOCKS5.
 
-## Quick start
+## Быстрый старт
 
-1. Put the AmneziaWG 3.1 client configuration in `config/amnezia3.conf`.
-2. Copy `.env.example` to `.env` and change `PROXY_PASSWORD`.
-3. Start the stack:
+1. Поместите конфигурацию клиента AmneziaWG 3.1 в `config/amnezia3.conf`.
+2. Скопируйте `.env.example` в `.env` и измените `PROXY_PASSWORD`.
+3. Запустите стек:
 
 ```sh
 docker compose up -d
 ```
 
-The first start can take up to the configured `HEALTH_VPN_DURATION_INITIAL` while the tunnel is established.
+Первый запуск может занять до значения `HEALTH_VPN_DURATION_INITIAL`, пока устанавливается туннель.
 
-## Endpoints
+## Точки доступа
 
-- HTTP/HTTPS proxy: `http://HOST:${HTTP_PROXY_PORT:-3128}`
-- SOCKS5 proxy: `socks5://HOST:${SOCKS_PROXY_PORT:-1080}`
+- HTTP/HTTPS прокси: `http://HOST:${HTTP_PROXY_PORT:-3128}`
+- SOCKS5 прокси: `socks5://HOST:${SOCKS_PROXY_PORT:-1080}`
 
-The same username and password from `.env` are required for both proxy protocols. HTTPS proxying is provided through HTTP CONNECT.
+Для обоих протоколов требуется тот же логин и пароль из `.env`. HTTPS-проксификация выполняется через HTTP CONNECT.
 
-## Destination whitelist
+## Исключения из маршрутизации VPN (`NO_VPN_ROUTES`)
 
-Set `PROXY_WHITELIST` in `.env` as a comma-separated list of destination IPs, CIDRs, or hostname patterns:
+Параметр `NO_VPN_ROUTES` задает список IP-адресов и CIDR-сетей, помимо встоенных RFC1918, которые должны обходить VPN и подключаться напрямую, даже когда активен туннель. Это полезно, когда сам прокси или его клиенты обращаются к нему по публичному IP, а также для исключения локальных сетей и других адресов, которые нельзя отправлять через VPN.
+
+Пример:
+
+```dotenv
+NO_VPN_ROUTES=228.91.16.20/32,10.0.0.5,192.168.10.0/24
+```
+
+Значения указываются через запятую. В дополнение к стандартным RFC1918-диапазонам можно явно добавить адрес, по которому вы обращаетесь к прокси снаружи (публичный IP хоста, IP клиента и т.п.).
+
+## Белый список назначения
+
+Задайте `PROXY_WHITELIST` в `.env` как список IP-адресов, CIDR или шаблонов доменов через запятую:
 
 ```dotenv
 PROXY_WHITELIST=api.ipify.org,z.ai,*.z.ai,cursor.com,*.cursor.com,*.cursor.sh,*.cursor-cdn.com,*.cursorapi.com,*.cursorvm.com,*.*.cursorvm.com
 ```
 
-The list is enforced by 3proxy before a connection is opened and applies to both HTTP CONNECT and SOCKS5. An empty value denies all destinations. For domains, include the bare domain and an explicit `*.` pattern when both the apex and subdomains are needed, for example `example.com,*.example.com`.
+Список проверяется `3proxy` до открытия соединения и применяется как к HTTP CONNECT, так и к SOCKS5. Пустое значение запрещает все назначения. Для доменов укажите основной домен и явный шаблон `*.` в случае, если нужны и корневой домен, и поддомены, например `example.com,*.example.com`.
 
-After changing the list, recreate the ACL container:
+После изменения списка пересоздайте ACL-контейнер:
 
 ```sh
 docker compose up -d --build --force-recreate acl-proxy
 ```
 
-## Configuration notes
+## Примечания по конфигурации
 
-The file is mounted at `/etc/amnezia/awg0.conf` and is consumed by the local AWG 3.1 userspace implementation. It must be an AmneziaWG INI configuration, including `[Interface]` and `[Peer]`; do not commit it because it contains private keys.
+Файл монтируется в `/etc/amnezia/awg0.conf` и используется локальной реализацией AWG 3.1 в userspace. Это должна быть конфигурация AmneziaWG INI с секциями `[Interface]` и `[Peer]`; не коммитьте её, потому что в ней находятся приватные ключи.
 
-The VPN image is built from the current `amneziawg-go` and `amneziawg-tools` sources. The entrypoint resolves the endpoint hostname to an IPv4 address, starts `awg-quick` with `amneziawg-go`, and applies a kill-switch that only permits the tunnel endpoint and traffic through `awg0`.
+Образ VPN собирается из текущих исходников `amneziawg-go` и `amneziawg-tools`. Entrypoint разрешает hostname удалённой точки в IPv4-адрес, запускает `awg-quick` через `amneziawg-go` и применяет kill-switch, который разрешает только туннельную конечную точку и трафик через `awg0`.
 
-The complete AWG 3.1 configuration is passed through, including `HeaderProtectionKey`, `ContentPaddingAddition`, timing parameters, `RandomTrailers`, and `DisableCookies`. `Table = off` is used internally because Docker Desktop does not allow the kernel policy-routing sysctl used by `awg-quick`; the entrypoint installs the default route through `awg0` after preserving the route to the VPN endpoint.
+Полная конфигурация AWG 3.1 передаётся целиком, включая `HeaderProtectionKey`, `ContentPaddingAddition`, параметры таймингов, `RandomTrailers` и `DisableCookies`. Внутри используется `Table = off`, потому что Docker Desktop не позволяет использовать sysctl для policy-routing из ядра, который нужен для `awg-quick`; entrypoint создаёт маршрут по умолчанию через `awg0` после сохранения маршрута до конечной точки VPN.
 
-Tunnel and proxy container health are visible in `docker compose ps` and `docker compose logs -f proxy`.
+Состояние туннеля и прокси-контейнера можно проверить через `docker compose ps` и `docker compose logs -f proxy`.
 
-## Useful commands
+## Полезные команды
 
 ```sh
 docker compose config
