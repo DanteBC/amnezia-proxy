@@ -19,26 +19,41 @@ sed "s/^Endpoint = .*/Endpoint = $endpoint_ip:$endpoint_port/; /^\[Interface\]/a
 export WG_QUICK_USERSPACE_IMPLEMENTATION=/usr/local/bin/amneziawg-go
 awg-quick up /tmp/awg0.conf
 
-# Запоминаем оригинальный маршрут по умолчанию
+# Оригинальный маршрут по умолчанию
 orig_default=$(ip route show default | head -n 1)
 orig_gateway=$(echo "$orig_default" | awk '{print $3}')
 orig_iface=$(echo "$orig_default" | awk '{print $5}')
 
-# Маршрут до endpoint через оригинальный шлюз (чтобы VPN не зациклился)
+# Endpoint — напрямую
 ip route replace "$endpoint_ip/32" via "$orig_gateway" dev "$orig_iface"
 
-# Заменяем default на awg0
+# Default — в VPN
 ip route replace default dev "$interface"
 
-# Возвращаем маршруты для приватных сетей через оригинальный шлюз
-ip route replace 10.0.0.0/8 via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
-ip route replace 172.16.0.0/12 via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
-ip route replace 192.168.0.0/16 via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
+# Приватные сети — мимо VPN
+ip route replace 10.0.0.0/8       via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
+ip route replace 172.16.0.0/12    via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
+ip route replace 192.168.0.0/16   via "$orig_gateway" dev "$orig_iface" 2>/dev/null || true
+
+# Пользовательские исключения из NO_VPN_ROUTES
+no_vpn_routes=${NO_VPN_ROUTES:-}
+if [ -n "$no_vpn_routes" ]; then
+  old_ifs=$IFS
+  IFS=,
+  for cidr in $no_vpn_routes; do
+    # убираем возможные пробелы вокруг элемента
+    cidr=$(printf '%s' "$cidr" | tr -d ' ')
+    [ -z "$cidr" ] && continue
+    ip route replace "$cidr" via "$orig_gateway" dev "$orig_iface" 2>/dev/null || \
+      printf '%s\n' "Warning: failed to add route for $cidr" >&2
+  done
+  IFS=$old_ifs
+fi
 
 # IPv6 (опционально)
 ip -6 route replace default dev "$interface" 2>/dev/null || true
 
-# Фаервол: разрешаем established, loopback, endpoint, awg0; остальное reject
+# Фаервол
 iptables -I OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 iptables -I OUTPUT -o lo -j ACCEPT
 iptables -I OUTPUT -d "$endpoint_ip" -p udp --dport "$endpoint_port" -j ACCEPT

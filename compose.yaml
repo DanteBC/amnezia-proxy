@@ -22,6 +22,7 @@ services:
     environment:
       - TZ=${TZ:-UTC}
       - AMNEZIAWG_CONFIG=/etc/amnezia/awg0.conf
+      - NO_VPN_ROUTES=${NO_VPN_ROUTES:-}
     healthcheck:
       test: ["CMD-SHELL", "ip link show awg0 >/dev/null && ip route get 1.1.1.1 >/dev/null"]
       interval: 30s
@@ -45,4 +46,3 @@ services:
       - PROXY_USERNAME=${PROXY_USERNAME:-proxy}
       - PROXY_PASSWORD=${PROXY_PASSWORD:?Set PROXY_PASSWORD in .env}
       - PROXY_WHITELIST=${PROXY_WHITELIST:-}
-
